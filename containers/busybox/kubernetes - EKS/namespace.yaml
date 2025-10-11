@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: busybox-sample
+  labels:
+    name: busybox-sample
+    app: busybox-http-server
+

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox-http-server
+  namespace: busybox-sample
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox-http-server
+  template:
+    metadata:
+      labels:
+        app: busybox-http-server
+    spec:
+      containers:
+      - name: busybox-http-server
+        image: cleanstart/busybox:latest-dev
+        ports:
+        - containerPort: 8080
+        command: ["sh", "-c"]
+        args:
+        - |
+          echo "Hello from BusyBox on Kubernetes!"
+          while true; do
+            echo -e "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<h1>Hello from BusyBox on Kubernetes!</h1>" | busybox nc -l -p 8080
+          done
+
