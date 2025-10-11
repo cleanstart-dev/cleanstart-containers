@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cosign-deployment
+  namespace: cosign-sample
+  labels:
+    app: cosign
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cosign
+  template:
+    metadata:
+      labels:
+        app: cosign
+    spec:
+      containers:
+      - name: cosign
+        image: cleanstart/cosign:latest-dev
+        command: ["sh", "-c"]
+        args:
+        - |
+          echo "🔐 Cosign container started on Kubernetes AWS"
+          echo "Container Signing, Verification and Storage in OCI registry"
+          echo "Use 'kubectl exec' to run Cosign commands"
+          echo ""
+          echo "Available commands:"
+          echo "  - cosign version"
+          echo "  - cosign generate-key-pair"
+          echo "  - cosign sign --key cosign.key <image>"
+          echo "  - cosign verify --key cosign.pub <image>"
+          echo "  - cosign tree <image>"
+          echo ""
+          
+          # Keep container running
+          while true; do
+            sleep 3600
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - cosign
+            - version
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - cosign
+            - version
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: cosign-keys
+          mountPath: /keys
+        workingDir: /keys
+      volumes:
+      - name: cosign-keys
+        emptyDir: {}
+

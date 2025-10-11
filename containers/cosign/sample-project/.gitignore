@@ -1,0 +1,10 @@
+# Cosign private keys - never commit these!
+cosign.key
+*.key
+
+# Cosign password file
+cosign.password
+
+# Test data
+*.sig
+
