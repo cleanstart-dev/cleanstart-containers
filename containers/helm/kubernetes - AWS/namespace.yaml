@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helm-test
+  labels:
+    name: helm-test
+    purpose: testing
