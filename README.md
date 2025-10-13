@@ -53,6 +53,8 @@ docker run --rm go-hello-world
 cleanstart-containers/
 ├── LICENSE                          
 ├── README.md                        # This file
+├── CONTRIBUTING.md     # Index file for how-to-guide coverage across CleanStart Images
+├── Security-Scanner-Integration.md  # Sharing the interest with progress of CleanStart's efforts to be recognized in popular vulnerability tools
 └── containers/                      # All container sample projects
     ├── go/
     │   ├── README.md
@@ -70,103 +72,6 @@ cleanstart-containers/
     ├── node/                       
     └── [more containers...]
 ```
-
-## 🛠️ Development
-
-### Building Images
-```bash
-# Build a specific container
-cd containers/go
-docker build -t cleanstart/go:latest .
-```
-
-### Running Sample Projects
-```bash
-# Navigate to any sample project
-cd containers/go/sample-project/go-web
-
-# Build and run
-docker build -t go-web-app .
-docker run -p 8080:8080 go-web-app
-```
-
-### Using Docker Compose
-```bash
-# Navigate to any sample project
-cd containers/[container-name]/sample-project
-
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-```
-
-## 🧪 Testing Your Setup
-
-### Health Checks
-```bash
-# Check if services are running
-docker-compose ps
-
-# Test web endpoints
-curl http://localhost:8080/health
-
-# View service logs
-docker-compose logs -f [service-name]
-```
-
-### Common Test Commands
-```bash
-# Test Docker installation
-docker --version
-docker-compose --version
-
-# Test container functionality
-docker run --rm cleanstart/[container-name] --version
-```
-
-## Index images, Use Cases and their sample projects
-
-# Available Docker Images
-
-| Sr No | Image Name              | Use Case                                    | Dockerfile-Based Projects | Kubernetes-Based Projects | Helm-Based Projects |
-|-------|-------------------------|---------------------------------------------|---------------------------|---------------------------|----------------------|
-| 1     | argocd-workflow-exec    | Execute ArgoCD Workflows                    | Yes                       | No                        | No                   |
-| 2     | argocd-extension-installer | ArgoCD Extensions & Plugins Installation | Yes                       | Yes                       | Yes                  |
-| 3     | aws-cli                 | AWS Command Line Interface                  | Yes                       | Yes                       | No                   |
-| 4     | busybox                 | Lightweight Utility                         | Yes                       | No                        | No                   |
-| 5     | cadvisor                | Container Resource Monitoring               | Yes                       | Yes                       | Yes                  |
-| 6     | cortex                  | Scalable Prometheus-Compatible Monitoring   | Yes                       | Yes                       | Yes                  |
-| 7     | curl                    | Data Transfer                               | Yes                       | No                        | No                   |
-| 8     | glibc                   | GNU C Library Runtime Support               | Yes                       | No                        | No                   |
-| 9     | go                      | Web Applications & Microservices            | Yes                       | Yes                       | No                   |
-| 10    | jdk                     | Java Development Kit                        | Yes                       | No                        | No                   |
-| 11    | jre                     | Java Runtime                                | Yes                       | No                        | No                   |
-| 12    | kyverno-kyvernopre      | Kubernetes Policy Engine                    | Yes                       | No                        | Yes                  |
-| 13    | logstash-exporter       | Elasticsearch Metrics Exporter              | Yes                       | No                        | No                   |
-| 14    | memcached               | In-Memory Caching                           | Yes                       | No                        | No                   |
-| 15    | metallb-controller      | Kubernetes Load Balancer                    | Yes                       | No                        | Yes                  |
-| 16    | minio                   | Object Storage Server                       | Yes                       | No                        | Yes                  |
-| 17    | minio-operator-sidecar  | MinIO Storage Operator                      | Yes                       | No                        | Yes                  |
-| 18    | nginx                   | Web Server & Reverse Proxy                  | Yes                       | No                        | No                   |
-| 19    | postgres                | Relational Database                         | Yes                       | No                        | No                   |
-| 20    | python                  | Data Science & Web Apps                     | Yes                       | Yes                       | Yes                  |
-| 21    | sqlite3                 | Lightweight SQL Database                    | Yes                       | No                        | No                   |
-| 22    | step-cli                | PKI & Certificates                          | Yes                       | No                        | No                   |
-
-
-## 📚 Documentation
-
-Each sample project includes:
-- **Detailed README** - Complete setup and usage instructions
-- **Setup Scripts** - Automated environment setup
-- **Docker Compose** - Multi-container orchestration
-- **Example Code** - Working code examples
-- **Test Scripts** - Validation and testing tools
 
 ## 🤝 Contributing
 
