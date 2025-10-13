@@ -54,7 +54,7 @@ cleanstart-containers/
 ├── LICENSE                          
 ├── README.md                        # This file
 ├── CONTRIBUTING.md     # Index file for how-to-guide coverage across CleanStart Images
-├── Security-Scanner-Integration.md  # Sharing the interest with progress of CleanStart's efforts to be recognized in popular vulnerability tools
+├── SECURITY.md  # Sharing the interest with progress of CleanStart's efforts to be recognized in popular vulnerability tools
 └── containers/                      # All container sample projects
     ├── go/
     │   ├── README.md
