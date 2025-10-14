@@ -1,0 +1,197 @@
+# CleanStart Kube-proxy DaemonSet for AWS EKS/Kubernetes
+# This uses unique names to avoid conflicts with existing kube-proxy
+# For testing purposes - use a separate namespace
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cleanstart-kube-proxy
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cleanstart-kube-proxy
+  namespace: cleanstart-kube-proxy
+  labels:
+    app: cleanstart-kube-proxy
+    component: network
+spec:
+  selector:
+    matchLabels:
+      app: cleanstart-kube-proxy
+  template:
+    metadata:
+      labels:
+        app: cleanstart-kube-proxy
+        component: network
+    spec:
+      # Use host network to access the Kubernetes API and manage node networking
+      hostNetwork: true
+      
+      # Ensure pods are scheduled on Linux nodes
+      nodeSelector:
+        kubernetes.io/os: linux
+      
+      # Tolerate all taints to ensure kube-proxy runs on all nodes
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      - operator: Exists
+        effect: NoExecute
+      
+      # Priority class for system-critical pods
+      priorityClassName: system-node-critical
+      
+      # Service account with appropriate RBAC permissions
+      serviceAccountName: cleanstart-kube-proxy
+      
+      containers:
+      - name: kube-proxy
+        image: cleanstart/kube-proxy:latest-dev
+        
+        # Command and args for kube-proxy
+        command:
+        - /usr/bin/kube-proxy
+        args:
+        - --kubeconfig=/var/lib/kube-proxy/kubeconfig.conf
+        - --proxy-mode=iptables
+        - --v=2
+        - --log-flush-frequency=5s
+        - --bind-address=0.0.0.0
+        - --healthz-port=10257  # Different port to avoid conflict
+        - --metrics-port=10250  # Different port to avoid conflict
+        
+        # Security context with required capabilities
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_MODULE
+        
+        # Resource limits
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        
+        # Volume mounts
+        volumeMounts:
+        - name: kubeconfig
+          mountPath: /var/lib/kube-proxy
+          readOnly: true
+        - name: iptables-lock
+          mountPath: /run/xtables.lock
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        
+        # Liveness probe (using different port)
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10257
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 15
+          failureThreshold: 3
+      
+      # Volumes
+      volumes:
+      - name: kubeconfig
+        configMap:
+          name: cleanstart-kube-proxy-config
+      - name: iptables-lock
+        hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+          type: Directory
+
+---
+# ConfigMap for kube-proxy configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cleanstart-kube-proxy-config
+  namespace: cleanstart-kube-proxy
+data:
+  kubeconfig.conf: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://kubernetes.default.svc
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    users:
+    - name: default
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+---
+# ServiceAccount for kube-proxy
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cleanstart-kube-proxy
+  namespace: cleanstart-kube-proxy
+
+---
+# ClusterRole for kube-proxy
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cleanstart-kube-proxy
+rules:
+- apiGroups: [""]
+  resources:
+  - endpoints
+  - services
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups: ["discovery.k8s.io"]
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups: [""]
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+
+---
+# ClusterRoleBinding for kube-proxy
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cleanstart-kube-proxy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cleanstart-kube-proxy
+subjects:
+- kind: ServiceAccount
+  name: cleanstart-kube-proxy
+  namespace: cleanstart-kube-proxy

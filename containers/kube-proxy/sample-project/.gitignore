@@ -1,0 +1,19 @@
+# Ignore test outputs
+*.log
+*.tmp
+
+# Ignore actual kubeconfig files (keep only the sample)
+kubeconfig-actual.yaml
+*-actual.yaml
+
+# Ignore Docker volumes
+.docker/
+
+# Ignore test artifacts
+test-results/
+*.test
+
+# OS specific
+.DS_Store
+Thumbs.db
+
