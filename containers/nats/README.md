@@ -1,22 +1,19 @@
 # 📨 CleanStart Container for NATS
 
-Official NATS messaging system container image optimized for enterprise environments. Provides high-performance, lightweight pub/sub messaging for cloud-native applications, microservices, and IoT. Features security-hardened base image, minimal attack surface, and production-ready configuration.
+High-performance, lightweight NATS messaging server optimized for cloud-native applications, microservices, and IoT. Features security-hardened base image with minimal attack surface.
 
-## 🌟 Key Features
+## 🌟 Overview
 
-* Complete NATS messaging server with monitoring capabilities
-* Optimized for cloud-native and microservices architectures
-* Support for pub/sub, request-reply, and queue groups
-* Built-in HTTP monitoring endpoints
-* Minimal resource footprint with high throughput
+**Key Features:**
+- Complete NATS messaging server with monitoring capabilities
+- Support for pub/sub, request-reply, and queue groups
+- Built-in HTTP monitoring endpoints
+- Minimal resource footprint with high throughput
 
-## 🎯 Common Use Cases
-
-* Microservices communication and service mesh
-* Event-driven architectures and real-time messaging
-* IoT device communication
-* Distributed system coordination
-* Stream processing and data pipelines
+**Common Use Cases:**
+- Microservices communication and service mesh
+- Event-driven architectures and real-time messaging
+- IoT device communication and distributed system coordination
 
 ## 🚀 Quick Start
 
@@ -95,42 +92,6 @@ Example:
 curl http://localhost:8222/varz
 curl http://localhost:8222/connz
 ```
-
-## 🔧 Configuration Options
-
-### Basic Server
-
-```bash
-docker run -d \
-  --name nats-server \
-  -p 4222:4222 \
-  cleanstart/nats:latest
-```
-
-### With Monitoring
-
-```bash
-docker run -d \
-  --name nats-server \
-  -p 4222:4222 \
-  -p 8222:8222 \
-  cleanstart/nats:latest
-```
-
-### With Debug Logging
-
-```bash
-docker run -d \
-  --name nats-server \
-  -p 4222:4222 \
-  -p 8222:8222 \
-  cleanstart/nats:latest \
-  -DV
-```
-
-Flags:
-- `-D` - Enable debug output
-- `-V` - Enable verbose/trace output
 
 ## 🎯 Best Practices
 
