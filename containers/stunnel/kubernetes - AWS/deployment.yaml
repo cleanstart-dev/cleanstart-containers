@@ -1,0 +1,290 @@
+---
+# ConfigMap for Stunnel Server Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stunnel-server-config
+  namespace: stunnel-demo
+data:
+  stunnel-server.conf: |
+    ; Stunnel Server Configuration
+    ; Acts as SSL/TLS server - accepts encrypted connections and forwards to backend
+    
+    ; Global options
+    foreground = yes
+    debug = 5
+    syslog = no
+    output = /dev/stdout
+    
+    ; SSL/TLS options
+    ; Use TLSv1.2 and higher
+    sslVersion = TLSv1.2
+    
+    ; Service definition for Redis
+    [redis-ssl]
+    ; Accept SSL/TLS connections on port 6380
+    accept = 0.0.0.0:6380
+    
+    ; Forward decrypted traffic to Redis backend on port 6379
+    connect = redis-service:6379
+    
+    ; SSL certificate (combined cert and key)
+    cert = /etc/stunnel/certs/stunnel.pem
+
+---
+# ConfigMap for Stunnel Client Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stunnel-client-config
+  namespace: stunnel-demo
+data:
+  stunnel-client.conf: |
+    ; Stunnel Client Configuration
+    ; Acts as SSL/TLS client - accepts plain connections and forwards encrypted
+    
+    ; Global options
+    foreground = yes
+    debug = 5
+    syslog = no
+    output = /dev/stdout
+    
+    ; SSL/TLS options
+    ; Use TLSv1.2 and higher
+    sslVersion = TLSv1.2
+    
+    ; Service definition for Redis client
+    [redis-client]
+    ; Run in client mode
+    client = yes
+    
+    ; Accept local connections on port 6379
+    accept = 0.0.0.0:6379
+    
+    ; Connect to stunnel server with SSL/TLS on port 6380
+    connect = stunnel-server-service:6380
+    
+    ; Disable certificate verification for self-signed certs (development only)
+    verify = 0
+
+---
+# Note: You need to create the stunnel-certs secret before deploying
+# Generate a self-signed certificate:
+#   openssl req -new -x509 -days 365 -nodes -out stunnel-cert.pem -keyout stunnel-key.pem -subj "/CN=stunnel-server"
+#   cat stunnel-key.pem stunnel-cert.pem > stunnel.pem
+#   kubectl create secret generic stunnel-certs --from-file=stunnel.pem=stunnel.pem -n stunnel-demo
+
+---
+# Redis Backend Deployment (No SSL)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-backend
+  namespace: stunnel-demo
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Redis Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: stunnel-demo
+  labels:
+    app: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+  selector:
+    app: redis
+
+---
+# Stunnel Server Deployment (SSL Wrapper)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stunnel-server
+  namespace: stunnel-demo
+  labels:
+    app: stunnel-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stunnel-server
+  template:
+    metadata:
+      labels:
+        app: stunnel-server
+    spec:
+      containers:
+      - name: stunnel
+        image: cleanstart/stunnel:latest-dev
+        ports:
+        - containerPort: 6380
+        command: ["/usr/bin/stunnel"]
+        args: ["/etc/stunnel/stunnel-server.conf"]
+        volumeMounts:
+        - name: stunnel-config
+          mountPath: /etc/stunnel/stunnel-server.conf
+          subPath: stunnel-server.conf
+          readOnly: true
+        - name: stunnel-certs
+          mountPath: /etc/stunnel/certs
+          readOnly: true
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+        livenessProbe:
+          tcpSocket:
+            port: 6380
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 6380
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: stunnel-config
+        configMap:
+          name: stunnel-server-config
+      - name: stunnel-certs
+        secret:
+          secretName: stunnel-certs
+
+---
+# Stunnel Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: stunnel-server-service
+  namespace: stunnel-demo
+  labels:
+    app: stunnel-server
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6380
+    targetPort: 6380
+    protocol: TCP
+    name: stunnel-ssl
+  selector:
+    app: stunnel-server
+
+---
+# Stunnel Client Deployment (SSL Client Wrapper)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stunnel-client
+  namespace: stunnel-demo
+  labels:
+    app: stunnel-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stunnel-client
+  template:
+    metadata:
+      labels:
+        app: stunnel-client
+    spec:
+      containers:
+      - name: stunnel
+        image: cleanstart/stunnel:latest-dev
+        ports:
+        - containerPort: 6379
+        command: ["/usr/bin/stunnel"]
+        args: ["/etc/stunnel/stunnel-client.conf"]
+        volumeMounts:
+        - name: stunnel-config
+          mountPath: /etc/stunnel/stunnel-client.conf
+          subPath: stunnel-client.conf
+          readOnly: true
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: stunnel-config
+        configMap:
+          name: stunnel-client-config
+
+---
+# Stunnel Client Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: stunnel-client-service
+  namespace: stunnel-demo
+  labels:
+    app: stunnel-client
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: stunnel-plain
+  selector:
+    app: stunnel-client
+

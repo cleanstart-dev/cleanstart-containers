@@ -1,0 +1,19 @@
+# Certificate files
+*.pem
+*.key
+*.crt
+*.csr
+
+# Certificate directory
+certs/
+
+# Docker volumes
+volumes/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
