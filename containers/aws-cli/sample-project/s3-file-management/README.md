@@ -24,12 +24,37 @@ This sample project provides:
    docker-compose --version
    ```
 
-2. **Up the S3 File Management Project**
+2. **Build and Start the S3 File Management Project**
    ```bash
-   docker compose up -d
+   docker compose up --build -d
    ```
 
-3. **Down the Services**
+3. **Stop the Services**
    ```bash
    docker compose down
    ```
+
+## 🔧 Troubleshooting
+
+### AWS CLI awscrt Import Error Fix
+
+If you encounter the error:
+```
+ImportError: /usr/lib/python3.13/site-packages/_awscrt.abi3.so: undefined symbol: aws_checksums_crc64nvme
+```
+
+This project now includes a **custom Dockerfile** that fixes this compatibility issue by:
+- Using Ubuntu 22.04 LTS as the base image
+- Installing AWS CLI v2 with proper dependencies
+- Ensuring all Python packages are compatible
+
+### Test the Fix
+
+Run the test script to verify everything works:
+```bash
+# On Linux/macOS
+./test-fix.sh
+
+# On Windows PowerShell
+.\test-fix.ps1
+```
