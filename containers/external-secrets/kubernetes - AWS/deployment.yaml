@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-secrets-test
+  labels:
+    name: external-secrets-test
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-secrets
+  namespace: external-secrets-test
+  labels:
+    app: external-secrets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: external-secrets
+  namespace: external-secrets-test
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: external-secrets
+  namespace: external-secrets-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-secrets
+subjects:
+- kind: ServiceAccount
+  name: external-secrets
+  namespace: external-secrets-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-secrets
+  namespace: external-secrets-test
+  labels:
+    app: external-secrets
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: external-secrets
+  template:
+    metadata:
+      labels:
+        app: external-secrets
+    spec:
+      serviceAccountName: external-secrets
+      containers:
+      - name: external-secrets
+        image: cleanstart/external-secrets:latest-dev
+        imagePullPolicy: IfNotPresent
+        args:
+        - --concurrent=1
+        - --loglevel=info
+        - --metrics-addr=:8080
+        ports:
+        - name: metrics
+          containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-secrets
+  namespace: external-secrets-test
+  labels:
+    app: external-secrets
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: external-secrets

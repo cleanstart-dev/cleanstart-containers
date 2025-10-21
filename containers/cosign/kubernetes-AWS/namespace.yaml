@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cosign-sample
+  labels:
+    name: cosign-sample
+    purpose: container-signing
+

@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats-service
+  namespace: nats-demo
+  labels:
+    app: nats
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 4222
+    targetPort: 4222
+    protocol: TCP
+    name: client
+  - port: 8222
+    targetPort: 8222
+    protocol: TCP
+    name: monitoring
+  selector:
+    app: nats

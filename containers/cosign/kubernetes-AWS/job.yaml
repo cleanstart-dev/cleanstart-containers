@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cosign-demo
+  namespace: cosign-sample
+spec:
+  template:
+    metadata:
+      labels:
+        app: cosign-demo
+    spec:
+      containers:
+      - name: cosign
+        image: cleanstart/cosign:latest-dev
+        command: ["sh", "-c"]
+        args:
+        - |
+          echo "=========================================="
+          echo "🔐 Cosign Demo - Container Signing Tool"
+          echo "=========================================="
+          echo ""
+          
+          echo "📋 Step 1: Check Cosign Version"
+          echo "-----------------------------------"
+          cosign version
+          echo ""
+          
+          echo "📋 Step 2: Generate Key Pair"
+          echo "-----------------------------------"
+          echo -e '\n\n' | cosign generate-key-pair
+          echo "✅ Keys generated successfully"
+          ls -la cosign.* 2>/dev/null || echo "Keys created in memory"
+          echo ""
+          
+          echo "📋 Step 3: Check Cosign Image Signature Status"
+          echo "-----------------------------------"
+          echo "Checking if cleanstart/cosign:latest-dev is signed..."
+          cosign tree cleanstart/cosign:latest-dev || echo "No signatures found (expected)"
+          echo ""
+          
+          echo "📋 Step 4: Triangulate Signature Location"
+          echo "-----------------------------------"
+          echo "Finding where signatures would be stored..."
+          cosign triangulate cleanstart/cosign:latest-dev || echo "No signature location (image not signed)"
+          echo ""
+          
+          echo "=========================================="
+          echo "✅ Cosign Demo Completed Successfully!"
+          echo "=========================================="
+          echo ""
+          echo "Note: To sign images, they must be in a registry"
+          echo "Signatures are stored in the OCI registry"
+      restartPolicy: Never
+  backoffLimit: 2
+

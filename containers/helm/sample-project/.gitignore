@@ -1,0 +1,26 @@
+# Generated charts and working directories
+my-chart/
+my-first-chart/
+hello-world/
+
+# Helm cache and data directories
+.cache/
+.config/
+.data/
+helm-data/
+
+# Chart packages
+*.tgz
+
+# Custom values (may contain sensitive data)
+*-values.yaml
+!custom-values.yaml
+
+# Generated files
+default-values.yaml
+rendered-manifests.yaml
+
+# Temporary files
+*.tmp
+*.log
+

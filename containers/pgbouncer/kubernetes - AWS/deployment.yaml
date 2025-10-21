@@ -1,0 +1,187 @@
+---
+# ConfigMap for PgBouncer configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgbouncer-config
+  namespace: pgbouncer-demo
+data:
+  pgbouncer.ini: |
+    [databases]
+    testdb = host=postgres-service port=5432 dbname=testdb
+    
+    [pgbouncer]
+    pool_mode = session
+    listen_addr = 0.0.0.0
+    listen_port = 6432
+    auth_type = plain
+    auth_file = /etc/pgbouncer/userlist.txt
+    max_client_conn = 100
+    default_pool_size = 20
+    min_pool_size = 5
+    reserve_pool_size = 5
+    reserve_pool_timeout = 3
+    log_connections = 1
+    log_disconnections = 1
+    log_pooler_errors = 1
+    admin_users = testuser
+    stats_users = testuser
+    server_idle_timeout = 600
+    server_lifetime = 3600
+    server_connect_timeout = 15
+    query_timeout = 0
+    client_idle_timeout = 0
+    ignore_startup_parameters = extra_float_digits
+    so_reuseport = 1
+  
+  userlist.txt: |
+    "testuser" "testpass"
+
+---
+# PostgreSQL Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: pgbouncer-demo
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "testdb"
+        - name: POSTGRES_USER
+          value: "testuser"
+        - name: POSTGRES_PASSWORD
+          value: "testpass"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - testuser
+            - -d
+            - testdb
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - testuser
+            - -d
+            - testdb
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: pgbouncer-demo
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+  selector:
+    app: postgres
+
+---
+# PgBouncer Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: pgbouncer-demo
+  labels:
+    app: pgbouncer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+    spec:
+      containers:
+      - name: pgbouncer
+        image: cleanstart/pgbouncer:latest
+        ports:
+        - containerPort: 6432
+        command: ["/usr/bin/pgbouncer"]
+        args: ["/etc/pgbouncer/pgbouncer.ini"]
+        volumeMounts:
+        - name: pgbouncer-config
+          mountPath: /etc/pgbouncer
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          tcpSocket:
+            port: 6432
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 6432
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: pgbouncer-config
+        configMap:
+          name: pgbouncer-config
+
+---
+# PgBouncer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer-service
+  namespace: pgbouncer-demo
+  labels:
+    app: pgbouncer
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6432
+    targetPort: 6432
+    protocol: TCP
+    name: pgbouncer
+  selector:
+    app: pgbouncer
+

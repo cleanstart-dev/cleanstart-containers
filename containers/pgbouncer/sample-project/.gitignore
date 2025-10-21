@@ -1,0 +1,22 @@
+# Ignore generated files
+*.log
+*.pid
+
+# Docker volumes
+.docker/
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
